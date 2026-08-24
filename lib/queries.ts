@@ -39,7 +39,7 @@ export async function searchPlayers(term: string, limit = 15): Promise<PlayerSea
     OPTIONAL MATCH (p)-[:PLAYS_POSITION]->(pos:Position)
     RETURN p.id AS id, p.name AS name, c.name AS club, pos.name AS position, p.nationality AS nationality
     ORDER BY p.name
-    LIMIT $limit
+    LIMIT toInteger($limit)
     `,
     { term, limit: Math.trunc(limit) }
   );
@@ -74,7 +74,7 @@ export async function getFeaturedPlayers(limit = 8): Promise<PlayerSearchResult[
     OPTIONAL MATCH (p)-[:PLAYS_POSITION]->(pos:Position)
     RETURN p.id AS id, p.name AS name, c.name AS club, pos.name AS position, p.nationality AS nationality
     ORDER BY p.marketValue DESC
-    LIMIT $limit
+    LIMIT toInteger($limit)
     `,
     { limit: Math.trunc(limit) }
   );

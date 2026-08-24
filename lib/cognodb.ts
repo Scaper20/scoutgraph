@@ -11,10 +11,6 @@
 
 import neo4j, { Driver } from 'neo4j-driver';
 
-const COGNODB_URI = process.env.COGNODB_URI;
-const COGNODB_USERNAME = process.env.COGNODB_USERNAME || 'cognodb';
-const COGNODB_PASSWORD = process.env.COGNODB_PASSWORD;
-
 let driver: Driver | null = null;
 
 export class DatabaseUnavailableError extends Error {
@@ -28,18 +24,43 @@ export class DatabaseUnavailableError extends Error {
 export function getDriver(): Driver {
   if (driver) return driver;
 
-  if (!COGNODB_URI || !COGNODB_PASSWORD) {
+  const uri = process.env.COGNODB_URI;
+  const username = process.env.COGNODB_USERNAME || 'cognodb';
+  const password = process.env.COGNODB_PASSWORD;
+
+  if (!uri || !password) {
     throw new DatabaseUnavailableError(
       new Error('COGNODB_URI / COGNODB_PASSWORD are not set in the environment.')
     );
   }
 
-  driver = neo4j.driver(COGNODB_URI, neo4j.auth.basic(COGNODB_USERNAME, COGNODB_PASSWORD), {
+  driver = neo4j.driver(uri, neo4j.auth.basic(username, password), {
     maxConnectionPoolSize: 20,
     connectionAcquisitionTimeout: 10_000,
+    disableLosslessIntegers: true,
   });
 
   return driver;
+}
+
+/** Recursively convert Neo4j Integer objects ({ low, high }) or neo4j.isInt values to JS numbers */
+export function toNative<T = any>(val: any): T {
+  if (val === null || val === undefined) return val;
+  if (neo4j.isInt && neo4j.isInt(val)) return val.toNumber() as any;
+  if (typeof val === 'object') {
+    if (typeof val.low === 'number' && typeof val.high === 'number') {
+      return neo4j.integer.toNumber(val) as any;
+    }
+    if (Array.isArray(val)) {
+      return val.map(toNative) as any;
+    }
+    const res: Record<string, any> = {};
+    for (const key of Object.keys(val)) {
+      res[key] = toNative(val[key]);
+    }
+    return res as any;
+  }
+  return val;
 }
 
 export async function verifyConnectivity(): Promise<void> {
@@ -66,7 +87,7 @@ export async function runQuery<T = Record<string, unknown>>(
   const session = d.session({ defaultAccessMode: neo4j.session.READ });
   try {
     const result = await session.run(cypher, params);
-    return result.records.map((r) => r.toObject() as T);
+    return result.records.map((r) => toNative<T>(r.toObject()));
   } catch (err) {
     // Never leak driver internals (host, auth details) to API responses —
     // log server-side only, throw a generic error to the caller.
@@ -92,7 +113,7 @@ export async function runWrite<T = Record<string, unknown>>(
   const session = d.session({ defaultAccessMode: neo4j.session.WRITE });
   try {
     const result = await session.executeWrite((tx) => tx.run(cypher, params));
-    return result.records.map((r) => r.toObject() as T);
+    return result.records.map((r) => toNative<T>(r.toObject()));
   } catch (err) {
     console.error('[cognodb] write failed:', (err as Error).message);
     throw new DatabaseUnavailableError(err);
