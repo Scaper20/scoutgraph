@@ -214,26 +214,22 @@ the browser.
 ```bash
 npm install
 cp .env.example .env.local     # then fill in your CognoDB credentials
-npm run seed                    # loads the synthetic dataset (~140 players)
+npm run seed                    # loads the real-world football dataset
 npm run dev                     # http://localhost:3000
 ```
 
 ## 12. Seed data
 
-`npm run seed` (`scripts/seed.ts`) generates a deterministic, entirely
-fictional dataset — no real players, clubs, or competitions, to keep the
-demo free of any real-person or trademark concerns:
+`npm run seed` (`scripts/seed.ts`) loads a rich dataset of real-world world-class football players, top European clubs, major international competitions, real player agencies, and authentic transfer & teammate graph relationships:
 
-- ~140 players across 24 clubs (5–7 per roster)
-- 18 countries, 10 positions, 8 fictional competitions, 15 fictional agents
-- `TEAMMATE_OF` edges both within each club and across clubs for players
-  sharing a nationality (so 2-hop traversals cross roster boundaries)
-- ~35% of players have a previous club, ~70% have an agent — deliberately
-  irregular, to exercise the app's empty states
+- World-class players including Kylian Mbappé, Erling Haaland, Jude Bellingham, Vinícius Júnior, Bukayo Saka, Declan Rice, Harry Kane, Jamal Musiala, Mohamed Salah, Florian Wirtz, Lamine Yamal, Cole Palmer, Robert Lewandowski, etc.
+- Top European clubs across major leagues (Real Madrid, Manchester City, Arsenal, Barcelona, Bayern Munich, Liverpool, PSG, Inter Milan, Atletico Madrid, Chelsea, Borussia Dortmund, AC Milan, Sporting CP, etc.)
+- `PLAYS_FOR`, `PLAYS_POSITION`, `REPRESENTS`, and `COMPETED_IN` edges connecting players to their clubs, positions, nations, and tournaments.
+- `PREVIOUSLY_PLAYED_FOR` edges recording transfer histories (e.g., Haaland → Dortmund, Bellingham → Dortmund, Mbappé → PSG, Kane → Tottenham, Palmer → Man City, Lewandowski → Bayern).
+- `REPRESENTED_BY` edges connecting players to real agencies (Pimenta Sports, Wasserman, Gestifute, CAA Stellar, Sports360, etc.).
+- `TEAMMATE_OF` edges both within each club roster and across national team squads, allowing 1–2 hop graph traversals on `/explore`.
 
-The script uses `UNWIND`-based batch writes (not one query per row) to stay
-comfortable on CognoDB's free-tier burstable instance, and starts with
-`MATCH (n) DETACH DELETE n`, so it's safe to re-run.
+The script uses `UNWIND`-based batch writes to stay comfortable on CognoDB's free-tier burstable instance, and starts with `MATCH (n) DETACH DELETE n`, so it's safe to re-run.
 
 ## 13. Deployment
 
@@ -265,8 +261,3 @@ Wexa AI confirms review is complete, per the assignment's requirements.
   stack traces, and the homepage still renders (client-side error states
   take over) instead of crashing.
 
-## 16. Screenshots & demo
-
-_Add screenshots of the dashboard, a player profile, and the network
-explorer here, along with the hosted Vercel demo link and a short screen
-recording, before submitting._
